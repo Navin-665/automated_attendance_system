@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance History</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px;
+               margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; padding: 30px; border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #2c3e50; color: white; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #ecf0f1; }
+        a { color: #2c3e50; }
+        .btn { background: #2c3e50; color: white; padding: 8px 16px;
+               border-radius: 5px; text-decoration: none; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📋 Attendance History</h1>
+        <a href="/">← Back</a>
+        <br><br>
+
+        {% if files %}
+        <table>
+            <tr>
+                <th>File</th>
+                <th>Download</th>
+            </tr>
+            {% for f in files %}
+            <tr>
+                <td>{{ f }}</td>
+                <td>
+                    <a href="/download/{{ f }}" class="btn">Download</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>No attendance records yet.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

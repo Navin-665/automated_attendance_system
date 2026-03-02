@@ -1,0 +1,24 @@
+# Virtual Environment — never push this
+venv/
+
+# Python cache — not needed
+__pycache__/
+*.pyc
+*.pyo
+
+# InsightFace downloaded models — too large
+.insightface/
+
+# Student data — private
+data/embeddings.pkl
+#data/student_photos/
+data/class_photos/
+
+# Output files
+output/
+static/results/
+static/student_thumbs/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Management</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 220px;
+                   height: 100vh; background: #2c3e50; padding: 20px 0; }
+        .sidebar h2 { color: white; padding: 0 20px 20px;
+                      border-bottom: 1px solid #34495e; font-size: 16px; }
+        .sidebar a  { display: block; color: #bdc3c7; padding: 12px 20px;
+                      text-decoration: none; font-size: 14px; }
+        .sidebar a:hover, .sidebar a.active { background:#34495e; color:white; }
+        .sidebar .logout { position: absolute; bottom: 20px; width: 100%; }
+        .main { margin-left: 220px; padding: 30px; }
+        h1 { color: #2c3e50; margin-bottom: 25px; }
+        .card { background: white; border-radius: 10px; padding: 25px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 25px; }
+        .card h2 { color: #2c3e50; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px;
+                            font-size: 13px; color: #555; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd;
+                            border-radius: 6px; font-size: 14px; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none;
+               cursor: pointer; font-size: 14px; text-decoration: none; }
+        .btn-primary { background: #2c3e50; color: white; }
+        .btn-danger  { background: #e74c3c; color: white; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #2c3e50; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #f0f2f5; font-size: 13px; }
+        tr:hover td { background: #f8f9fa; }
+        .photo-preview { width: 45px; height: 45px; border-radius: 50%;
+                         object-fit: cover; }
+        .flash-success { background: #d5f5e3; color: #27ae60; padding: 12px;
+                         border-radius: 6px; margin-bottom: 20px; }
+        .flash-error   { background: #fadbd8; color: #e74c3c; padding: 12px;
+                         border-radius: 6px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>📊 Admin Panel</h2>
+    <a href="/admin/dashboard">🏠 Dashboard</a>
+    <a href="/admin/students" class="active">👥 Students</a>
+    <a href="/admin/attendance">📋 Attendance</a>
+    <a href="/">🏫 Teacher View</a>
+    <div class="logout">
+        <a href="/admin/logout">🚪 Logout</a>
+    </div>
+</div>
+
+<div class="main">
+    <h1>Student Management</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <!-- Add Student Form -->
+    <div class="card">
+        <h2>➕ Add New Student</h2>
+        <form method="POST" action="/admin/students/add"
+              enctype="multipart/form-data">
+            <div style="display:flex; gap:20px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Full Name</label>
+                    <input type="text" name="name"
+                           placeholder="e.g. Naveen" required>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Roll Number</label>
+                    <input type="text" name="roll"
+                           placeholder="e.g. 101" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Photos (select 3-5 clear solo photos)</label>
+                <input type="file" name="photos"
+                       accept="image/*" multiple required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                Register Student
+            </button>
+        </form>
+    </div>
+
+    <!-- Students Table -->
+    <div class="card">
+        <h2>👥 Registered Students ({{ students|length }})</h2>
+        <table>
+            <tr>
+                <th>Photo</th>
+                <th>Name</th>
+                <th>Roll No</th>
+                <th>Folder</th>
+                <th>Photos</th>
+                <th>Action</th>
+            </tr>
+            {% for s in students %}
+            <tr>
+                <td>
+                    {% if s.photo %}
+                    <img src="{{ url_for('static', filename='student_thumbs/' + s.photo) }}"
+                         class="photo-preview">
+                    {% else %}
+                    👤
+                    {% endif %}
+                </td>
+                <td><strong>{{ s.name }}</strong></td>
+                <td>{{ s.roll }}</td>
+                <td style="color:#7f8c8d; font-size:12px;">{{ s.folder }}</td>
+                <td>{{ s.photo_count }}</td>
+                <td>
+                    <a href="/admin/students/delete/{{ s.folder }}"
+                       class="btn btn-danger"
+                       onclick="return confirm('Delete {{ s.name }}?')">
+                       Delete
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

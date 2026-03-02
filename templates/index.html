@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5;
+               min-height: 100vh; padding: 30px 20px; }
+
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        .subtitle { color: #7f8c8d; margin-bottom: 30px; font-size: 14px; }
+
+        .card { background: white; border-radius: 12px; padding: 30px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+                max-width: 700px; margin: 0 auto 25px; }
+
+        /* Tab switcher */
+        .tabs { display: flex; gap: 0; margin-bottom: 25px;
+                border-radius: 8px; overflow: hidden;
+                border: 1px solid #ddd; }
+        .tab { flex: 1; padding: 12px; text-align: center;
+               cursor: pointer; background: #f8f9fa;
+               color: #555; font-size: 14px; border: none;
+               transition: all 0.2s; }
+        .tab.active { background: #2c3e50; color: white; font-weight: bold; }
+        .tab:hover:not(.active) { background: #ecf0f1; }
+
+        /* Tab content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Upload section */
+        .upload-area { border: 2px dashed #bdc3c7; border-radius: 10px;
+                       padding: 40px; text-align: center; cursor: pointer;
+                       transition: all 0.2s; }
+        .upload-area:hover { border-color: #2c3e50; background: #f8f9fa; }
+        .upload-area p { color: #7f8c8d; margin-top: 10px; font-size: 14px; }
+        #fileInput { display: none; }
+        #fileName { margin-top: 10px; color: #2c3e50;
+                    font-size: 13px; font-weight: bold; }
+
+        /* Camera section */
+        .camera-container { position: relative; }
+        #cameraFeed { width: 100%; border-radius: 10px;
+                      background: #000; display: none;
+                      max-height: 400px; object-fit: cover; }
+        #capturedCanvas { width: 100%; border-radius: 10px;
+                          display: none; }
+
+        .camera-controls { display: flex; gap: 10px;
+                           margin-top: 15px; flex-wrap: wrap; }
+
+        /* Buttons */
+        .btn { padding: 12px 24px; border-radius: 8px; border: none;
+               cursor: pointer; font-size: 14px; font-weight: bold;
+               transition: all 0.2s; }
+        .btn-primary  { background: #2c3e50; color: white; width: 100%;
+                        margin-top: 20px; padding: 14px; font-size: 15px; }
+        .btn-primary:hover  { background: #34495e; }
+        .btn-camera   { background: #27ae60; color: white; flex: 1; }
+        .btn-camera:hover   { background: #229954; }
+        .btn-capture  { background: #2980b9; color: white; flex: 1; }
+        .btn-capture:hover  { background: #2471a3; }
+        .btn-retake   { background: #e74c3c; color: white; flex: 1; }
+        .btn-retake:hover   { background: #cb4335; }
+        .btn-switch   { background: #8e44ad; color: white; flex: 1; }
+        .btn-switch:hover   { background: #7d3c98; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Preview */
+        #uploadPreview { width: 100%; border-radius: 10px;
+                         margin-top: 15px; display: none; max-height: 300px;
+                         object-fit: cover; }
+
+        /* Status */
+        .status { padding: 10px 15px; border-radius: 6px;
+                  font-size: 13px; margin-top: 12px; display: none; }
+        .status.info    { background: #d6eaf8; color: #2980b9; }
+        .status.success { background: #d5f5e3; color: #27ae60; }
+        .status.error   { background: #fadbd8; color: #e74c3c; }
+
+        /* Navigation */
+        .nav { max-width: 700px; margin: 0 auto 20px;
+               display: flex; justify-content: space-between;
+               align-items: center; }
+        .nav a { color: #7f8c8d; text-decoration: none; font-size: 14px; }
+        .nav a:hover { color: #2c3e50; }
+
+        /* Flash */
+        .flash { max-width: 700px; margin: 0 auto 20px; padding: 12px 16px;
+                 border-radius: 8px; background: #fadbd8; color: #e74c3c;
+                 font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <div class="nav">
+        <div>
+            <h1>📸 Attendance System</h1>
+            <p class="subtitle">Mark attendance from class photo</p>
+        </div>
+        <div>
+            <a href="/history">📋 History</a> &nbsp;&nbsp;
+            <a href="/admin/login">⚙ Admin</a>
+        </div>
+    </div>
+
+    {% if message %}
+    <div class="flash">{{ message }}</div>
+    {% endif %}
+
+    <div class="card">
+
+        <!-- Tab switcher -->
+        <div class="tabs">
+            <button class="tab active"
+                    onclick="switchTab('upload', this)">
+                📁 Upload Photo
+            </button>
+            <button class="tab"
+                    onclick="switchTab('camera', this)">
+                📷 Take Photo
+            </button>
+        </div>
+
+        <!-- ── TAB 1: Upload ── -->
+        <div id="tab-upload" class="tab-content active">
+
+            <form id="uploadForm" action="/process"
+                  method="POST" enctype="multipart/form-data">
+
+                <div class="upload-area"
+                     onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 48px;">📂</div>
+                    <p>Click to select class photo</p>
+                    <p style="font-size:12px;">JPG, PNG — minimum 1280x720px recommended</p>
+                </div>
+
+                <input type="file" id="fileInput" name="photo"
+                       accept="image/*"
+                       onchange="previewUpload(this)">
+
+                <img id="uploadPreview" src="" alt="Preview">
+                <p id="fileName"></p>
+
+                <button type="submit" class="btn btn-primary"
+                        id="uploadBtn" disabled>
+                    🚀 Process Attendance
+                </button>
+
+            </form>
+        </div>
+
+        <!-- ── TAB 2: Camera ── -->
+        <div id="tab-camera" class="tab-content">
+
+            <div class="camera-container">
+                <!-- Live camera feed -->
+                <video id="cameraFeed" autoplay playsinline></video>
+
+                <!-- Captured photo shown here -->
+                <canvas id="capturedCanvas"></canvas>
+
+                <!-- Placeholder before camera opens -->
+                <div id="cameraPlaceholder"
+                     style="text-align:center; padding:60px 20px;
+                            background:#f8f9fa; border-radius:10px;">
+                    <div style="font-size:64px;">📷</div>
+                    <p style="color:#7f8c8d; margin-top:10px;">
+                        Click "Open Camera" to start
+                    </p>
+                </div>
+            </div>
+
+            <!-- Status messages -->
+            <div id="cameraStatus" class="status"></div>
+
+            <!-- Camera control buttons -->
+            <div class="camera-controls">
+                <button class="btn btn-camera"
+                        id="btnOpen"
+                        onclick="openCamera()">
+                    📷 Open Camera
+                </button>
+                <button class="btn btn-capture"
+                        id="btnCapture"
+                        onclick="capturePhoto()"
+                        disabled>
+                    📸 Capture
+                </button>
+                <button class="btn btn-retake"
+                        id="btnRetake"
+                        onclick="retakePhoto()"
+                        style="display:none">
+                    🔄 Retake
+                </button>
+                <button class="btn btn-switch"
+                        id="btnSwitch"
+                        onclick="switchCamera()"
+                        style="display:none">
+                    🔀 Switch Camera
+                </button>
+            </div>
+
+            <!-- Hidden form — sends captured photo to server -->
+            <form id="cameraForm" action="/process"
+                  method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="photo_data" id="photoData">
+                <button type="submit" class="btn btn-primary"
+                        id="btnProcess"
+                        style="display:none">
+                    🚀 Process Attendance
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Past attendance link -->
+    <div style="max-width:700px; margin:0 auto; text-align:center;">
+        <a href="/history" style="color:#7f8c8d; font-size:13px;">
+            View past attendance records →
+        </a>
+    </div>
+
+
+<script>
+// ── Tab switching ────────────────────────────────────────
+function switchTab(tabName, btn) {
+    document.querySelectorAll(".tab-content").forEach(t =>
+        t.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(t =>
+        t.classList.remove("active"));
+
+    document.getElementById("tab-" + tabName).classList.add("active");
+    btn.classList.add("active");
+
+    // Stop camera if switching away
+    if (tabName !== "camera") stopCamera();
+}
+
+
+// ── Upload preview ───────────────────────────────────────
+function previewUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const preview = document.getElementById("uploadPreview");
+    const nameEl  = document.getElementById("fileName");
+    const btn     = document.getElementById("uploadBtn");
+
+    preview.src     = URL.createObjectURL(file);
+    preview.style.display = "block";
+    nameEl.textContent    = `Selected: ${file.name}`;
+    btn.disabled          = false;
+}
+
+
+// ── Camera variables ─────────────────────────────────────
+let stream         = null;    // camera stream
+let facingMode     = "environment";  // "environment"=back, "user"=front
+let photoTaken     = false;
+
+
+function showStatus(msg, type) {
+    const el = document.getElementById("cameraStatus");
+    el.textContent     = msg;
+    el.className       = `status ${type}`;
+    el.style.display   = "block";
+}
+
+
+// ── Open camera ──────────────────────────────────────────
+async function openCamera() {
+    try {
+        showStatus("Opening camera...", "info");
+
+        // Request camera access
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: facingMode,   // back camera on phone
+                width:  { ideal: 1920 },  // request HD
+                height: { ideal: 1080 }
+            },
+            audio: false
+        });
+
+        const video = document.getElementById("cameraFeed");
+        video.srcObject        = stream;
+        video.style.display    = "block";
+
+        document.getElementById("cameraPlaceholder").style.display = "none";
+        document.getElementById("btnCapture").disabled  = false;
+        document.getElementById("btnSwitch").style.display  = "inline-flex";
+        document.getElementById("btnOpen").textContent  = "🔴 Camera On";
+        document.getElementById("btnOpen").disabled     = true;
+
+        showStatus("Camera ready — position class and click Capture", "success");
+
+    } catch (err) {
+        // Common errors
+        if (err.name === "NotAllowedError") {
+            showStatus("Camera permission denied. Please allow camera access.", "error");
+        } else if (err.name === "NotFoundError") {
+            showStatus("No camera found on this device.", "error");
+        } else {
+            showStatus(`Camera error: ${err.message}`, "error");
+        }
+    }
+}
+
+
+// ── Switch between front and back camera ─────────────────
+async function switchCamera() {
+    facingMode = facingMode === "environment" ? "user" : "environment";
+    stopCamera();
+    await openCamera();
+}
+
+
+// ── Capture photo from video feed ────────────────────────
+function capturePhoto() {
+    const video  = document.getElementById("cameraFeed");
+    const canvas = document.getElementById("capturedCanvas");
+
+    // Set canvas to video dimensions
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw current video frame onto canvas
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Show captured photo, hide video
+    canvas.style.display    = "block";
+    video.style.display     = "none";
+
+    // Show retake + process buttons
+    document.getElementById("btnRetake").style.display  = "inline-flex";
+    document.getElementById("btnCapture").style.display = "none";
+    document.getElementById("btnProcess").style.display = "block";
+    document.getElementById("btnSwitch").style.display  = "none";
+
+    // Convert canvas to base64 and store in hidden input
+    // Server will decode this
+    const imageData = canvas.toDataURL("image/jpeg", 0.95);
+    document.getElementById("photoData").value = imageData;
+
+    photoTaken = true;
+    showStatus("Photo captured! Click Process Attendance to continue.", "success");
+
+    // Stop camera stream (save battery)
+    stopCamera();
+}
+
+
+// ── Retake photo ─────────────────────────────────────────
+async function retakePhoto() {
+    const canvas = document.getElementById("capturedCanvas");
+    canvas.style.display = "none";
+
+    document.getElementById("btnRetake").style.display  = "none";
+    document.getElementById("btnProcess").style.display = "none";
+    document.getElementById("btnCapture").style.display = "inline-flex";
+    document.getElementById("photoData").value          = "";
+    photoTaken = false;
+
+    showStatus("", "info");
+    await openCamera();
+}
+
+
+// ── Stop camera ───────────────────────────────────────────
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+}
+
+// Stop camera if page is closed
+window.addEventListener("beforeunload", stopCamera);
+</script>
+
+</body>
+</html>
